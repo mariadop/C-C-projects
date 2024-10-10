@@ -1,0 +1,77 @@
+// optional1_9_10_2024.cpp : Ten plik zawiera funkcję „main”. W nim rozpoczyna się i kończy wykonywanie programu.
+//
+
+#include <iostream>
+using namespace std;
+int main()
+{
+	int mode, argument, n, m;
+
+	cin >> mode;
+	cin >> argument;
+	cin >> n;
+	cin >> m;
+
+
+	if (mode == 0) {
+		int count = 0;
+		int i, j;
+		for (i = 0; i < n; i++) {
+			for (j = 0; j < m; j++) {
+				int number;
+				cin >> number;
+				count += number;
+			}
+		}
+		cout << count;
+	}
+
+	else if (mode == 1) {
+		int count = 0;
+		int i, j;
+		for (i = 0; i < n; i++) {
+			for (j = 0; j < m; j++) {
+				int number;
+				cin >> number;
+				if (i == argument) {
+					count += number;
+				}
+			}
+		}
+		cout << count;
+	}
+
+	else if (mode == 2) {
+		int count = 0;
+		int i, j;
+		for (i = 0; i < n; i++) {
+			for (j = 0; j < m; j++) {
+				int number;
+				cin >> number;
+				if (j == argument) {
+					count += number;
+				}
+			}
+		}
+		cout << count;
+	}
+
+	else {
+		for (int i = 0; i < n; i++) {
+			for (int j = 0; j < m; j++) {
+				int number;
+				cin >> number;
+				if (number == argument) {
+					cout << "- ";
+				}
+				else {
+					cout << number << " ";
+				}
+				if (j == m - 1) {
+					cout << '\n';
+				}
+			}
+		}
+	}
+	
+}
