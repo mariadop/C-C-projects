@@ -1,0 +1,60 @@
+// laboratory2Task.cpp : Ten plik zawiera funkcję „main”. W nim rozpoczyna się i kończy wykonywanie programu.
+//
+
+
+#include <iostream>
+using namespace std;
+
+int main()
+{
+    int n, mode;
+    cin >> mode >> n;
+
+    if (mode == 0) {
+        int sumL = 0, sumR = 0;
+        for (int i = 0; i < n; i++) {
+            int l, r;
+            cin >> l >> r;
+
+            sumL += l;
+            sumR += r;
+
+        }
+        cout << sumL << " " << sumR;
+    }
+
+    else if (mode == 1) {
+        for (int i = 0; i < n; i++) {
+            int l, r;
+            cin >> l >> r;
+
+            if (l <= r) {
+                for (int j = l; j <= r; j++) {
+                    cout << j << " ";
+                }
+            }
+            cout << '\n';
+        }
+    }
+
+    else {
+        for (int i = 0; i < n; i++) {
+            int l, r;
+            cin >> l >> r;
+
+            if (l <= r) {
+                for (int j = l; j <= r; j++) {
+                    cout << j << " ";
+                }
+            }
+
+            else if (r < l) {
+                for (int j = l; j >= r; j--) {
+                    cout << j << " ";
+                }
+            }
+            cout << '\n';
+        }
+    }
+}
+
