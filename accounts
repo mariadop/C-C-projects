@@ -1,0 +1,54 @@
+// accounts.cpp : Ten plik zawiera funkcję „main”. W nim rozpoczyna się i kończy wykonywanie programu.
+//
+
+#include <iostream>
+using namespace std;
+
+const int client = 10;
+
+int main() {
+	int clients[client] = { 0 };
+	string command;
+
+	while (true) {
+		cin >> command;
+		int id, sum, advance;
+		if (command == "TAKE") {
+			cin >> id >> sum;
+			clients[id] = clients[id] - sum;
+		}
+
+		else if (command == "GIVE") {
+			cin >> id >> sum;
+			clients[id] = clients[id] + sum;
+		}
+
+		else if (command == "PRINT") {
+			for (int i = 0; i < client; i++) {
+				if (clients[i] != 0) {
+					cout << i << ": " << clients[i] << endl;
+				}
+			}
+		}
+
+		else if (command == "ADVANCE") {
+			cin >> advance;
+			for (int i = 0; i < client; i++) {
+				if ((clients[i] < 0) && (abs(clients[i]) / 100 >= 1)) {
+					int times = abs(clients[i] / 100);
+					clients[i] = clients[i] - (times * (10 * advance));
+				}
+
+				else if ((clients[i] > 0) && (clients[i] / 100 >= 1)) {
+					int times = abs(clients[i] / 100);
+					clients[i] = clients[i] + (times * (5 * advance));
+				}
+			}
+		}
+
+		else if (command == "END") {
+			break;
+		}
+	}
+}
+
