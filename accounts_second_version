@@ -1,0 +1,69 @@
+// accounts.cpp : Ten plik zawiera funkcję „main”. W nim rozpoczyna się i kończy wykonywanie programu.
+//
+
+#include <iostream>
+#include <string>
+using namespace std;
+
+const int client = 10;
+
+int main() {
+	int clients[client] = { 0 };
+	char types[client];
+
+	for (int i = 0; i < client; i++) {
+		types[i] = '-';
+	}
+	string command;
+
+	while (true) {
+		cin >> command;
+		int id, sum;
+		char type;
+		if (command == "ESTABLISH") {
+			cin >> id >> type;
+			types[id] = type;
+		}
+
+		else if (command == "WITHDRAW") {
+			cin >> id >> sum;
+			if (types[id] == 'A' && (clients[id] - sum) < 0) {
+				cout << "FORBIDDEN, NOT ENOUGH MONEY" << endl;
+			}
+			else if (types[id] == 'B' && (clients[id] - sum) <= -1000) {
+				cout << "FORBIDDEN, CREDIT LIMIT OVERDRAFT" << endl;
+			}
+			else {
+				clients[id] = clients[id] - sum;
+			}
+		}
+
+		else if (command == "DEPOSIT") {
+			cin >> id >> sum;
+			clients[id] = clients[id] + sum;
+		}
+
+		else if (command == "CLOSE") {
+			cin >> id;
+			if (clients[id] != 0) {
+				cout << "FORBIDDEN, NONZERO BALANCE" << endl;
+			}
+			else {
+				types[id] = '-';
+			}
+
+		}
+
+		else if (command == "PRINT") {
+			for (int i = 0; i < client; i++) {
+				if (types[i] == 'A' || types[i] == 'B') {
+					cout << i << " " << types[i] << " " << clients[i] << endl;
+				}
+			}
+		}
+
+		else if (command == "END") {
+			break;
+		}
+	}
+}
