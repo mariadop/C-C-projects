@@ -1,0 +1,88 @@
+// games.cpp : This file contains the 'main' function. Program execution begins and ends there.
+//
+
+#include <iostream>
+#include <string>
+using namespace std;
+
+const int bulbs = 100;
+const int floors = 10;
+
+int main() {
+	int k = floors;
+	string command;
+	cin >> command;
+
+	char building[floors][bulbs];
+	for (int r = 0; r < floors; r++) {
+		for (int c = 0; c < bulbs; c++) {
+			building[r][c] = '0';
+		}
+	}
+	int powers[floors][bulbs] = { 0 };
+
+	while (true) {
+		cin >> command;
+		int i, j, pow, mode;
+		char bulb, a;
+
+		if (command == "I") {
+			cin >> k;
+		}
+
+
+		else if (command == "A") {
+			cin >> i >> j >> bulb >> pow;
+			building[i][j] = bulb;
+			powers[i][j] = pow;
+		}
+
+		else if (command == "R") {
+			cin >> i >> j;
+			building[i][j] = '0';
+			powers[i][j] = 0;
+		}
+
+		else if (command == "P") {
+			cin >> mode;
+			if (mode == 0) {
+				for (int r = k - 1; r >= 0; r--) {
+					int is = 0;
+					for (int c = 0; c < bulbs; c++) {
+						if (building[r][c] != '0') {
+							is = 1;
+							break;
+						}
+					}
+					if (is == 1) {
+						cout << r << ": ";
+						for (int c = 0; c < bulbs; c++) {
+							if (building[r][c] != '0') {
+								cout << c << " " << building[r][c] << " " << powers[r][c] << " ; ";
+							}
+						}
+						cout << endl;
+					}
+
+				}
+			}
+			else if (mode == 1) {
+				cin >> a;
+				for (int r = 0; r < k; r++) {
+					for (int c = 0; c < bulbs; c++) {
+						if (building[r][c] == a) {
+							cout << r << " " << c << " " << powers[r][c] << " ; ";
+						}
+					}
+					cout << endl;
+				}
+
+			}
+
+		}
+
+		else if (command == "E") {
+			break;
+		}
+	}
+}
