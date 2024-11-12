@@ -1,0 +1,644 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+#include <stdlib.h>
+#include <windows.h>
+#include <conio.h>
+#include <time.h>
+
+//array sizes (game field sizes) that are ude in defining the arrays 
+#define CARS 10
+#define LANES 25
+#define COLUMNS 35
+
+
+struct gameParameters {
+    //color values
+    int colorFrog;
+    int colorCarB;
+    int colorCarG;
+    int colorField;
+
+    //array sizes (game field sizes)
+    int cars;
+    int lanes;
+    int columns;
+
+    //elements' symbols
+    int frogSymbol;
+    int carBSymbol;
+    int carGSymbol;
+
+    //move values
+    int left;
+    int right;
+    int up;
+    int down;
+
+    //game constants
+    int standByTime;
+    int distanceCarG;
+    int storkSpeed;
+
+    //border symbols
+    int horizontalBorder; //205
+    int verticalBorder; //186
+    int topRight; //187
+    int topLeft; //201
+    int downRight; //188
+    int downLeft; //200
+    int laneSymbol; //45
+
+}parameters;
+
+struct game {
+    int score;
+    int time;
+    int lifes;
+    time_t lastMoveTime;
+} game;
+
+//"bad" cars - are colliding with frog
+struct CarsB {
+    int y; //h
+    int lane; //v
+    int speed;
+    int color;
+    int direction;
+    time_t lastMoveTime;
+    int move;
+} carsB[CARS];
+
+//"good" cars - slow down when nearby the frog
+struct CarsG {
+    int y; //h
+    int lane; //v
+    int speed;
+    int color;
+    int direction;
+    int move;
+    int distance;
+    time_t lastMoveTime;
+} carsG[CARS];
+
+struct Frog {
+    int x; //h
+    int y; //v
+    int color;
+} frog;
+
+//reading specific parameters
+//border values
+void readBorderParameters(const char* filename, struct gameParameters* params) {
+    FILE* file = fopen(filename, "r");
+
+    if (file == NULL) {
+        printf("Error opening file %s\n", filename);
+        exit(1);
+    }
+
+    char line[100];      // Increased to prevent overflow
+    char constant[50];        // Increased for larger keys
+    int value;
+
+    while (fgets(line, sizeof(line), file)) {
+        memset(constant, 0, sizeof(constant));
+
+        if (sscanf(line, "%49[^=]=%d", constant, &value) == 2) {
+            //reading the border values
+            if (strcmp(constant, "HORIZONTAL_BORDER") == 0) params->horizontalBorder = value;
+            else if (strcmp(constant, "VERTICAL_BORDER") == 0) params->verticalBorder = value;
+            else if (strcmp(constant, "TOP_RIGHT") == 0) params->topRight = value;
+            else if (strcmp(constant, "TOP_LEFT") == 0) params->topLeft = value;
+            else if (strcmp(constant, "DOWN_RIGHT") == 0) params->downRight = value;
+            else if (strcmp(constant, "DOWN_LEFT") == 0) params->downLeft = value;
+            else if (strcmp(constant, "LANE_SYMBOL") == 0) params->laneSymbol = value;
+        }
+    }
+}
+
+//moves values
+void readMovesParameters(const char* filename, struct gameParameters* params) {
+    FILE* file = fopen(filename, "r");
+
+    if (file == NULL) {
+        printf("Error opening file %s\n", filename);
+        exit(1);
+    }
+
+    char line[100];      // Increased to prevent overflow
+    char constant[50];        // Increased for larger keys
+    int value;
+
+    while (fgets(line, sizeof(line), file)) {
+        memset(constant, 0, sizeof(constant));
+
+        if (sscanf(line, "%49[^=]=%d", constant, &value) == 2) {
+            //reading move values
+            if (strcmp(constant, "LEFT") == 0) params->left = value;
+            else if (strcmp(constant, "RIGHT") == 0) params->right = value;
+            else if (strcmp(constant, "UP") == 0) params->up = value;
+            else if (strcmp(constant, "DOWN") == 0) params->down = value;
+        }
+    }
+}
+
+//game constants
+void readGameConstParameters(const char* filename, struct gameParameters* params) {
+    FILE* file = fopen(filename, "r");
+
+    if (file == NULL) {
+        printf("Error opening file %s\n", filename);
+        exit(1);
+    }
+
+    char line[100];      // Increased to prevent overflow
+    char constant[50];        // Increased for larger keys
+    int value;
+
+    while (fgets(line, sizeof(line), file)) {
+        memset(constant, 0, sizeof(constant));
+
+        if (sscanf(line, "%49[^=]=%d", constant, &value) == 2) {
+            //reading game constants
+            if (strcmp(constant, "STANDBY_TIME") == 0) params->standByTime = value;
+            else if (strcmp(constant, "STORK_SPEED") == 0) params->storkSpeed = value;
+            else if (strcmp(constant, "CARG_DISTANCE") == 0) params->distanceCarG = value;
+        }
+    }
+}
+
+//element symbols
+void readSymbolsParameters(const char* filename, struct gameParameters* params) {
+    FILE* file = fopen(filename, "r");
+
+    if (file == NULL) {
+        printf("Error opening file %s\n", filename);
+        exit(1);
+    }
+
+    char line[100];      // Increased to prevent overflow
+    char constant[50];        // Increased for larger keys
+    int value;
+
+    while (fgets(line, sizeof(line), file)) {
+        memset(constant, 0, sizeof(constant));
+
+        if (sscanf(line, "%49[^=]=%d", constant, &value) == 2) {
+            //reading element symbols
+            if (strcmp(constant, "FROG_SYMBOL") == 0) params->frogSymbol = value;
+            else if (strcmp(constant, "CARB_SYMBOL") == 0) params->carBSymbol = value;
+            else if (strcmp(constant, "CARG_SYMBOL") == 0) params->carGSymbol = value;
+        }
+    }
+}
+
+//array sizes
+void readArrayParameters(const char* filename, struct gameParameters* params) {
+    FILE* file = fopen(filename, "r");
+
+    if (file == NULL) {
+        printf("Error opening file %s\n", filename);
+        exit(1);
+    }
+
+    char line[100];
+    char constant[50];
+    int value;
+
+    while (fgets(line, sizeof(line), file)) {
+        memset(constant, 0, sizeof(constant));
+
+        if (sscanf(line, "%49[^=]=%d", constant, &value) == 2) {
+            //reading array sizes (game field sizes)
+            if (strcmp(constant, "LANES") == 0) params->lanes = value;
+            else if (strcmp(constant, "COLUMNS") == 0) params->columns = value;
+            else if (strcmp(constant, "CARS") == 0) params->cars = value;
+        }
+    }
+}
+
+//color values
+void readColorParameters(const char *filename, struct gameParameters *params) {
+    FILE* file = fopen(filename, "r");
+
+    if (file == NULL) {
+        printf("Error opening file %s\n", filename);
+        exit(1);
+    }
+
+    char line[100];      // Increased to prevent overflow
+    char constant[50];        // Increased for larger keys
+    int value;
+
+    while (fgets(line, sizeof(line), file)) {
+        memset(constant, 0, sizeof(constant));
+
+        if (sscanf(line, "%49[^=]=%d", constant, &value) == 2) {
+            //reading color values
+            if (strcmp(constant, "COLOR_FROG") == 0) params->colorFrog = value;
+            else if (strcmp(constant, "COLOR_CARB") == 0) params->colorCarB = value;
+            else if (strcmp(constant, "COLOR_CARG") == 0) params->colorCarG = value;
+            else if (strcmp(constant, "COLOR_FIELD") == 0) params->colorField = value;
+        }
+    }
+
+    fclose(file);
+
+}
+
+void readAllParameters(const char* filename, struct gameParameters *params) {
+    readArrayParameters(filename, params);
+    readBorderParameters(filename, params);
+    readColorParameters(filename, params);
+    readGameConstParameters(filename, params);
+    readSymbolsParameters(filename, params);
+    readMovesParameters(filename, params);
+}
+
+//going to a certain location on game field
+void gotoxy(int x, int y) {
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    COORD pos;
+    pos.X = x;
+    pos.Y = y;
+    SetConsoleCursorPosition(hConsole, pos);
+}
+
+//setting elements' colors
+void setColor(int color) {
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    SetConsoleTextAttribute(hConsole, color);
+}
+
+//drawing the game field
+void drawBoard(char f[][COLUMNS], struct gameParameters params) {
+    gotoxy(0, 0);
+
+    for (int i = 0; i < params.lanes; i++) {
+        for (int j = 0; j < params.columns; j++) {
+            if (f[i][j] == params.frogSymbol) {
+                setColor(params.colorFrog);
+            }
+            else if (f[i][j] == params.carBSymbol) {
+                setColor(params.colorCarB);
+            }
+            else if (f[i][j] == params.carGSymbol) {
+                setColor(params.colorCarG);
+            }
+            else if (f[i][j] == params.horizontalBorder || f[i][j] == params.verticalBorder ||
+                f[i][j] == params.topLeft || f[i][j] == params.topRight ||
+                f[i][j] == params.downRight || f[i][j] == params.downLeft) {
+                setColor(params.colorField);
+            }
+            else {
+                setColor(7);
+            }
+            printf("%c", f[i][j]);
+        }
+        printf("\n");
+    }
+}
+
+//setting a bad car's properties
+void moveCarBAtBorder(int i, struct gameParameters params) {
+    carsB[i].color = params.colorCarB;
+    carsB[i].lane = 2 * (1 + (rand() % ((params.lanes - 2) / 2))); // Even rows as lanes
+    carsB[i].direction = (rand() % 2 == 0) ? 1 : -1; // Randomly assign left or right direction
+    carsB[i].y = (carsB[i].direction == 1) ? 1 : params.columns - 2; // Start at left or right edge
+    carsB[i].speed = rand() % params.cars + 1;
+    carsB[i].move = rand() % 4 + 1;
+    carsB[i].lastMoveTime = time(NULL);
+    
+}
+
+//setting a good car's properties
+void moveCarGAtBorder(int i, struct gameParameters params) {
+    carsG[i].color = params.colorCarG;
+    carsG[i].lane = 2 * (1 + (rand() % ((params.lanes - 2) / 2))); // Even rows as lanes
+    carsG[i].direction = (rand() % 2 == 0) ? 1 : -1; // Randomly assign left or right direction
+    carsG[i].y = (carsB[i].direction == 1) ? 1 : params.columns - 2; // Start at left or right edge
+    carsG[i].speed = rand() % params.cars + 1;
+    carsG[i].move = rand() % 4 + 1;
+    carsG[i].lastMoveTime = time(NULL);
+
+}
+
+//creating the default game field with frog and cars
+void creatingBoard(char field[][COLUMNS], struct gameParameters params) {
+    for (int i = 0; i < params.lanes; i++) {
+        for (int j = 0; j < params.columns; j++) {
+            field[i][j] = ' ';
+        }
+    }
+
+    //horizontal border & special symbols for corners
+    for (int r = 0; r < params.columns; r++) {
+        if (r == 0) {
+            field[0][0] = params.topLeft;
+            field[params.lanes - 1][0] = params.downLeft;
+        }
+        else if (r == (params.columns - 1)) {
+            field[0][params.columns - 1] = params.topRight;
+            field[params.lanes - 1][params.columns - 1] = params.downRight;
+        }
+        else {
+            field[0][r] = params.horizontalBorder;
+            field[params.lanes - 1][r] = params.horizontalBorder;
+        }
+    }
+
+    //vertical border
+    for (int c = 1; c < params.lanes - 1; c++) {
+        if (c != 0 && (c != params.lanes - 1)) {
+            field[c][0] = params.verticalBorder;
+            field[c][COLUMNS - 1] = params.verticalBorder;   
+        }
+    }
+
+    //creating lines that create lanes
+    for (int i = 1; i < params.lanes - 1; i++) {
+        if (i % 2 == 1) {
+            for (int j = 1; j < params.columns - 1; j++) {
+                field[i][j] = params.laneSymbol;
+            }
+        }
+    }
+
+    //initializing the bad and good cars' default positions
+    for (int i = 0; i < params.cars; i++) {
+        moveCarBAtBorder(i, params);
+        moveCarGAtBorder(i, params);
+    }
+
+    //initializing frog's default position
+    frog.color = params.colorFrog;
+    frog.x = params.columns / 2;
+    frog.y = params.lanes - 2;
+}
+
+void carsBPosition(int i, struct gameParameters params) {
+    if (carsB[i].direction == 1) {
+        if (carsB[i].y + carsB[i].move < params.columns - 2) {
+            carsB[i].y += carsB[i].move;
+        }
+        else {
+            moveCarBAtBorder(i, params);
+        }
+    }
+    else {
+        if (carsB[i].y - carsB[i].move > 1) {
+            carsB[i].y -= carsB[i].move;
+        }
+        else {
+            moveCarBAtBorder(i, params);
+        }
+    }
+}
+
+void carsGPosition(int i, struct gameParameters params) {
+    if (carsG[i].direction == 1) {
+        if (carsG[i].y + carsG[i].move < params.columns - 2) {
+            carsG[i].y += carsG[i].move;
+        }
+        else {
+            moveCarGAtBorder(i, params);
+        }
+    }
+    else {
+        if (carsG[i].y - carsG[i].move > 1) {
+            carsG[i].y -= carsG[i].move;
+        }
+        else {
+            moveCarGAtBorder(i, params);
+        }
+    }
+}
+
+//setting the cars' driving parameters
+void moveCars(struct gameParameters params) {
+    for (int i = 0; i < params.cars; i++) {
+        time_t currentTime = time(NULL);
+        double interval = 1.0 / carsB[i].speed;
+
+        if (difftime(currentTime, carsB[i].lastMoveTime) >= interval) {
+            carsBPosition(i, params);
+            carsB[i].lastMoveTime = currentTime;
+        }
+    }
+
+    for (int i = 0; i < params.cars; i++) {
+        time_t currentTime = time(NULL);
+        double interval = 1.0 / carsG[i].speed;
+
+        if (difftime(currentTime, carsG[i].lastMoveTime) >= interval) {
+            carsGPosition(i, params);
+            carsG[i].lastMoveTime = currentTime;
+        }
+    }
+
+}
+
+//controling the frog with keys
+void moveFrog(struct gameParameters params) {
+    if (_kbhit()) {
+        char key = _getch();
+
+        if (key == 'w' && frog.y > 1) frog.y -= params.up;
+        else if (key == 's' && frog.y < LANES - 2) frog.y += params.down;
+        else if (key == 'a' && frog.x > 1) frog.x -= params.left;
+        else if (key == 'd' && frog.x < COLUMNS - 2) frog.x += params.right;
+
+    }
+}
+
+// updating the field with frog's and cars' moves
+void update(char field[][COLUMNS], struct gameParameters params) {
+    
+    for (int i = 1; i < params.lanes - 1; i++) {
+        for (int j = 1; j < params.columns - 1; j++) {
+            if (field[i][j] == params.frogSymbol) {
+                if (i % 2 == 1) {
+                    field[i][j] = params.laneSymbol;
+                }
+                else {
+                    field[i][j] = ' ';
+                }
+            }
+            if (field[i][j] != params.laneSymbol && field[i][j] != params.frogSymbol) {
+                field[i][j] = ' ';
+            }
+            
+        }
+    }
+
+   
+    setColor(frog.color);
+    field[frog.y][frog.x] = params.frogSymbol;
+
+    
+    for (int i = 0; i < params.cars; i++) {
+        setColor(carsB[i].color);
+        field[carsB[i].lane][carsB[i].y] = params.carBSymbol;
+        setColor(carsG[i].color);
+        field[carsG[i].lane][carsG[i].y] = params.carGSymbol;
+    }
+
+}
+
+//checking if frog and any bad car are colliding
+int checkCollision(struct gameParameters params) {
+    for (int i = 0; i < params.cars; i++) {
+        if (frog.x == carsB[i].y && frog.y == carsB[i].lane) {
+            return 1;
+        }
+        if (carsB[i].direction == 1) {
+            if (frog.x == carsB[i].y + carsB[i].move && frog.y == carsB[i].lane) {
+                return 1;
+            }
+        }
+        else if (carsB[i].direction == -1) {
+            if (frog.x == carsB[i].y - carsB[i].move && frog.y == carsB[i].lane) {
+                return 1;
+            }
+        }
+        if (frog.x == carsG[i].y && frog.y == carsG[i].lane) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+//hiding the cursor
+void hideCursor() {
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_CURSOR_INFO cursorInfo;
+
+    // Get the current cursor information
+    GetConsoleCursorInfo(hConsole, &cursorInfo);
+
+    // Set the cursor visibility to false
+    cursorInfo.bVisible = FALSE;
+    SetConsoleCursorInfo(hConsole, &cursorInfo);
+}
+
+void initializeGame(char field[][COLUMNS]) {
+    moveCars(parameters);
+    moveFrog(parameters);
+    update(field, parameters);
+    drawBoard(field, parameters);
+}
+
+//funkcja nextMove, która ma podać ci jakie byłyby współrzędne auta przy następnym ruchu
+
+//błąd we wczytywaniu funkcji checkCollision, po pierwszym ruchu wyświetla się komunikat - kolizja
+int winConditions(struct game *game, int temp, int curr, struct gameParameters params, struct Frog frog) {
+    if (checkCollision(params) == 1) {
+        return 1;
+    }
+
+    if (temp == curr) {
+        time_t currentTime = time(NULL);
+        double stationaryTime = difftime(currentTime, game->lastMoveTime);
+
+        if (stationaryTime > params.standByTime) {
+            return 2;
+        }
+    }
+    else {
+        game->lastMoveTime = time(NULL);
+    }
+
+    if (checkCollision(params) == 0 && temp > curr) {
+        game->score += 1;
+    }
+
+    else if (checkCollision(params) == 0 && temp < curr) {
+        game->score -= 1;
+    }
+
+    else if (frog.y == 1) {
+        return 0;
+    }
+}
+
+int main() {
+    hideCursor();
+
+    readAllParameters("gameParameters.txt", &parameters);
+
+    time_t startTime = time(NULL);
+
+    game.score = 0;
+    game.lifes = 5;
+    game.lastMoveTime = startTime;
+
+    srand(time(NULL));
+    
+    char field[LANES][COLUMNS];
+    creatingBoard(field, parameters);
+
+    while (1) {
+        int tempFrogPos = frog.y;
+        initializeGame(field);
+        int currFrogPos = frog.y;
+
+        game.time = (int)difftime(time(NULL), startTime);
+
+        gotoxy(0, parameters.lanes + 1);
+        printf("Score: %d   Time: %d seconds\n", game.score, game.time);
+
+        int condition = winConditions(&game, tempFrogPos, currFrogPos, parameters, frog);
+
+        if (condition == 0) {
+            printf("Congratulations, you won! Final score : %d\n", game.score);
+            break;
+        }
+        else if (condition == 1) {
+            printf("Collision! Game over. Final score : %d\n", game.score);
+            break;
+        }
+        else if (condition == 2) {
+            printf("You are too slow! Game over! Final score : %d\n", game.score);
+            break;
+        }
+        else {
+            continue;
+        }
+        
+
+        /*if (checkCollision(parameters) == 1) {
+            printf("Collision! Game over. Final score : %d\n", game.score);
+            break;
+        }
+
+        if (tempFrogPos == currFrogPos) {
+            time_t currentTime = time(NULL);
+            double stationaryTime = difftime(currentTime, game.lastMoveTime);
+
+            if (stationaryTime > parameters.standByTime) {
+                printf("You are too slow! Game over! Final score : %d\n", game.score);
+                break;
+            }
+        }
+        else {
+            game.lastMoveTime = time(NULL);
+        }
+
+        if (checkCollision(parameters) == 0 && tempFrogPos > currFrogPos) {
+            game.score += 1;
+        }
+
+        else if (checkCollision(parameters) == 0 && tempFrogPos < currFrogPos) {
+            game.score -= 1;
+        }
+
+        else if (frog.y == 1) {
+            printf("Congratulations, you won! Final score : %d\n", game.score);
+            break;
+        }*/
+
+        Sleep(100);
+    }
+
+    return 0;
+}
