@@ -1,0 +1,130 @@
+// labs1211.cpp : This file contains the 'main' function. Program execution begins and ends there.
+//
+
+#include <iostream>
+#include <string>
+#include <algorithm>
+using namespace std;
+
+
+
+void print(char picture[25][25], int n, int m) {
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < m; j++) {
+			cout << picture[i][j];
+		}
+		cout << endl;
+	}
+}
+
+int main() {
+int n, m, mode;
+char c1;
+int dx, dy;
+int a, b, c, d;
+char pattern[25][25] = { '/0' };
+char picture[25][25] = { '/0' };
+
+	while (true) {
+		string command;
+		cin >> command;
+
+		if (command == "INI") {
+			
+			cin >> n >> m;
+			for (int i = 0; i < n; i++) {
+				char line[25];
+				cin >> line;
+				for (int j = 0; j < m; j++) {
+					picture[i][j] = line[j];
+				}
+			}
+		}
+
+		else if (command == "PRT") {
+			print(picture, n, m);
+		}
+
+		else if (command == "PATTERN") {
+			cin >> mode;
+
+			if (mode == -1) {
+				cin >> c1;
+			}
+			else if (mode == 0) { 
+				cin >> c1 >> dy >> dx;
+				for (int i = 0; i < dy; i++) {
+					char line[25];
+					cin >> line;
+					for (int j = 0; j < dx; j++) {
+						pattern[i][j] = line[j];
+					}
+				}
+			}
+
+			else if (mode == 1 || mode == 2) {
+				cin >> dy >> dx;
+				for (int i = 0; i < dy; i++) {
+					char line[25];
+					cin >> line;
+					for (int j = 0; j < dx; j++) {
+						pattern[i][j] = line[j];
+					}
+				}
+			}
+			
+		}
+
+		else if (command == "PASTE_PAT") {
+			cin >> a >> b >> c >> d;
+
+			c = min(c, n - 1);
+			d = min(d, m - 1);
+
+			for (int i = a; i <= c; i++) {
+				for (int j = b; j <= d; j++) {
+					int pat_i = i - a;
+					int pat_j = j - b;
+
+					if (mode == -1) {
+						picture[i][j] = c1;
+					}
+
+					else if (mode == 0) {
+						if (pat_i < dy && pat_j < dx) {
+							picture[i][j] = pattern[pat_i][pat_j];
+						}
+						else {
+							picture[i][j] = c1;
+						}
+					}
+
+					else if (mode == 1) {
+						if (pat_i < dy && pat_j < dx) {
+							picture[i][j] = pattern[pat_i][pat_j];
+						}
+						else if (pat_i < dy) {
+							picture[i][j] = pattern[pat_i][dx - 1];
+						}
+						else if (pat_j < dx) {
+							picture[i][j] = pattern[dy - 1][pat_j];
+						}
+						else {
+							picture[i][j] = pattern[dy - 1][dx - 1];
+						}
+					}
+
+					else if (mode == 2) {
+						picture[i][j] = pattern[pat_i % dy][pat_j % dx];
+					}
+				}
+			}
+		}
+
+		else if (command == "END") {
+			break;
+		}
+	}
+	return 0;
+}
+
