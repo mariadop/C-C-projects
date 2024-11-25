@@ -20,7 +20,13 @@ int main() {
 	struct Ball* balls = NULL;
 
 	while (1) {
-		char command[125];
+		char *command;
+		command = (char*)malloc(125 * sizeof(char));
+		if (command == NULL) {
+			printf("Memory allocation failed\n");
+			return 1;
+		}
+		//char command[125];
 		scanf("%s", command);
 		if (strcmp(command, "INIT") == 0) {
 
@@ -134,9 +140,6 @@ int main() {
 		else if (strcmp(command, "END") == 0) {
 			break;
 		}
-	}
-
-	
-	
+		free(command);
+	}	
 }
-
